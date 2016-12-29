@@ -1,0 +1,18 @@
+---
+title: "STA286 Lecture 01"
+author: "Neil Montgomery"
+date: "Last edited: `r format(Sys.time(), '%Y-%m-%d %H:%M')`"
+output: beamer_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# admin
+
+## foo
+
+* Bar
+
+* Baz
