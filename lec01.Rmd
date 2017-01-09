@@ -2,17 +2,396 @@
 title: "STA286 Lecture 01"
 author: "Neil Montgomery"
 date: "Last edited: `r format(Sys.time(), '%Y-%m-%d %H:%M')`"
-output: beamer_presentation
+output: 
+  beamer_presentation:
+    incremental: TRUE
+    df_print: tibble
+    fig_caption: FALSE
+classoption: aspectratio=169
+
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center')
+options(tibble.width=70)
 ```
 
 # admin
 
-## foo
+## contact, notes
 
-* Bar
+|
+-------------|---------------------------------------------------------------------
+date format  | YYYY-MM-DD -- *All Hail ISO8601!!!*
+instructor   | Neil Montgomery
+email        | neilm@mie.utoronto.ca
+office       | BA8137
+office hours | W11-1
+website      | portal (announcements, grades, suggested exercises, etc.)
+github       | https://github.com/sta286-winter-2017 (lecture material, code, etc.)
 
-* Baz
+Lecture notes and other course timing matters will be organized by *lecture number* and not *lecture date*, due to two lecture sections.
+
+## evaluation, book, tutorials
+
+what | when | how much
+-----|------|---------
+midterm 1 | TBA | 25%
+midterm 2 | TBA | 25%
+exam | TBA | 50%
+
+The book is Walpole, R.E., Myers, R.H., Myers, S.L., Ye, K., 2012. *Probability & statistics for engineers & scientists.* 9th edition.
+
+I will suggest exercises from this book each week. Your TA will work through some of them in tutorial each week. 
+
+**Tutorials start TBA.**
+
+## software 
+
+The course begins and ends with data analysis, with a long stretch of probability theory in the middle. 
+
+Data analysis requires a computer. Also, some concepts can be illustrated using simulation, which also requires a computer. 
+
+We will be using `R`. It's pretty good at data analysis. 
+
+language | interpreter | integrated development environment
+---------|-------------|-----------------------------------
+`R`      | `R`         | `RStudio`
+
+Some detailed instructions and suggestions for installation and configuration appear on the course website.
+
+I will try to impart some data analysis workflow wisdom throughout the course. Some already appears in the detailed instructions. 
+
+# MATLAB SUCKS!
+
+# what is a dataset?
+
+## most datasets are rectangles
+
+Columns are the *variables*.
+
+The top row has the names of the variables; possibly chosen wisely.
+
+Rows are the *observations* of measurements taken on *units*.
+
+There are no averages, no comments (unless in a "comment" variable), no colors, no formatting, no plots, no capes!
+
+## not a dataset
+
+![](wild_and_crazy.PNG)
+
+## not a dataset
+
+![](rowwise.PNG)
+
+## an oil readings dataset (wide version)
+
+```{r, message=FALSE}
+library(tidyverse)
+library(readxl)
+oil <- read_excel("oil_readings.xlsx")
+oil
+```
+
+## oil readings with `Ident` and `TakenBy` properly treated
+
+```{r}
+oil <- oil %>% mutate(Ident = factor(Ident), TakenBy = factor(TakenBy))
+oil
+```
+
+
+## oil readings dataset (long version)
+
+```{r}
+oil_long <- oil %>% 
+  gather(element, ppm, -Ident:-TakenBy)
+oil_long
+```
+
+
+## the main questions
+
+* where did the data come from?
+    + were the units chosed randomly from a population?
+    + were the units randomly assigned into groups?
+* what are the (joint) *distributions* of the data?
+
+## random sample, experiment, observational data
+
+Sometimes the data come from a *random sample* from a larger *population*, in which case statements about the sample can apply to the population using laws of probability.
+
+\pause (Not a focus of this course.)
+
+\pause Sometimes data come from an *experiment* where units are randomly assigned to different *levels* of one or more *factors*, in which cause cause-and-effect can be inferred using laws of probability.
+
+\pause Often the data are just some records of what happened. Grander inferences might be made, but only on a subject-matter basis.
+
+## distribution (informally)
+
+* A *distribution* is a 
+    + Complete description of...
+    + ...the possible values of one or more variables... 
+    + ...and the relative frequency of those values.
+    
+* A dataset contains **empirical** information about distribution(s) that can be assessed
+    + numerically
+    + graphically  
+    
+\pause through a process called *exploratory data analysis*
+
+## a taxonomy of variables
+
+* Numerical or categorical?
+    + Numerical: length, ppm, time-to-event, etc.
+    + Categorical: yes/no, colour, etc.
+    + Lots of grey areas even in this classification!
+        - Categories can have an inherent order
+        - "Likert scale" (strongly disagree coded as 1 and so on...)
+        
+* Numerical variables could be discrete (counting something) or continuously measured. 
+
+# numerical summaries of dataset variables --- definitions first with examples after
+
+## sample measures of "location"
+
+The dataset is often called the "sample" (no matter where the data came from).
+
+\pause For a particular numerical variable in the sample with observations:
+$$\{x_1,x_2,\ldots,x_n\}$$
+the *sample average* is just the arithmetic mean:
+$$\overline{x}=\frac{1}{n}\sum\limits_{i=1}^n x_i$$
+\pause Could be sensitive to extreme observations. 
+
+## sample medians, sample percentiles
+
+Order the observations:
+
+$$x_{(1)} \le x_{(2)} \le \cdots \le x_{(n)}$$
+A number that divides the observations into two groups is called a *sample median*. For example:
+$$\tilde{x} = \begin{cases}
+x_{\left((n+1)/2\right)} &: n \text{ odd}\\
+\left(x_{\left(n/2\right)} + x_{\left(n/2 + 1\right)}\right)/2 &: n \text{ even}
+\end{cases},$$
+which is harder to write out than it is to understand.
+
+\pause A *sample $p^{th}$ percentile* has $p$\% of the data below or equal to it. Special cases include (sample...): quartiles, quintiles, deciles, and indeed the median itself.
+
+## sample measures of variation of a numerical variable
+
+Very (too?) simple measure: *sample range* which is just $x_{(n)} - x_{(1)}$.
+
+\pause More common to consider the set of deviations from the sample mean:
+$$x_i - \overline{x}$$
+Adding them up just gives 0, so instead consider positive functions such as:
+$$|x_i - \overline{x}|\qquad \text{ or } \qquad (x_i - \overline{x})^2$$
+\pause Summing up over all the observations gives the *sum of absolute deviations* (aka SAD) and the *sample variance* respectively. Notation and formula:
+$$s^2 = \frac{\sum\limits_{i=1}^{n} \left(x_i - \overline{x}\right)^2}{n-1}$$
+
+## sample standard deviation
+
+$s^2$ is essentially the average squared deviation. (More on $n-1$ later in the course.)
+
+The sample variance is good for theory but has an inconvenient unit. More practical is the *sample standard deviation*:
+$$s = \sqrt{s^2}$$
+
+## numerical summaries for categorical variables
+
+The oil readings data has one categorical variable, the `Ident` variable which is just a serial number.
+
+```{r}
+oil[1:5,]
+```
+
+## tables of counts (or proportions)
+
+A categorical variable could also be called a *factor* variable with *levels*, and to tabulate the frequency of each level is the way to summarize.
+
+```{r}
+oil %>% 
+  count(Ident) %>% 
+  mutate(proportion = n/sum(n))
+```
+
+## two-way classification with `Ident` and `TakenBy`
+
+```{r}
+with(oil, table(TakenBy, Ident))
+```
+
+# graphical summaries
+
+## barchart
+
+A barchart is a table of counts, in graphical form.
+
+```{r}
+oil %>% 
+  ggplot(aes(x=Ident)) + 
+  geom_bar() + 
+  theme(axis.text.x = element_text(angle=90))
+```
+
+## "Pareto" chart 
+
+Ordered by count.
+
+```{r}
+oil %>% 
+  ggplot(aes(x=reorder(Ident, -table(Ident)[Ident]))) + 
+  geom_bar() + 
+  theme(axis.text.x = element_text(angle=90)) + 
+  xlab("Ident")
+```
+
+## piecharts are problematic
+
+```{r, fig.height=8, fig.asp=1}
+pie(table(oil$Ident))
+```
+
+## histograms
+
+A histogram is a special case of a barchart.
+
+A numerical variable is split into classes and a barchart is made from the table of counts of obvservations within each class. 
+
+Histograms are done by the computer. Always play around with the number of classes.
+
+```{r, fig.width=3.8, fig.asp = 0.618034}
+oil %>% 
+  ggplot(aes(x=Fe)) + geom_histogram(bins=50, color="black", fill="white") 
+```
+
+## histograms are hard to implement!
+
+Better picture around 0. Possibly not important for EDA?
+
+```{r}
+oil %>% 
+  ggplot(aes(x=Fe)) + geom_histogram(bins=50, boundary=0, colour="black", fill="white")
+```
+
+## histogram without those really big values
+
+```{r}
+oil %>% 
+  filter(Fe < 100) %>% 
+  ggplot(aes(x=Fe)) + geom_histogram(bins=50, boundary=0)
+```
+
+## a few more ppm histograms
+
+```{r}
+## Special function for more than one plot on the same page.
+source("multiplot.R")
+
+p1 <- oil %>% 
+  ggplot(aes(x=Si)) + geom_histogram(bins=50)
+
+p2 <- oil %>% 
+  ggplot(aes(x=Ca)) + geom_histogram(bins=50)
+
+p3 <- oil %>% 
+  ggplot(aes(x=Cu)) + geom_histogram(bins=50)
+
+p4 <- oil %>% 
+  ggplot(aes(x=Zn)) + geom_histogram(bins=50)
+
+multiplot(p1, p2, p3, p4, cols=2)
+```
+
+## "shapes" of "distributions"
+
+To use a histogram, *glance* at it and look for any of the following (without getting fooled by plot artefacts):
+
+```{r}
+# These plots use base R plots, which I tend to avoid
+layout(matrix(1:4, 2, 2, byrow=TRUE))
+plot(density(rnorm(10000), bw=1), axes=FALSE, xlab="", ylab="", main=""); box(); title("Symmetric")
+plot(density(rweibull(10000, 1.5, 10), bw=2), axes=FALSE, xlab="", ylab="", main=""); box(); title("Right skewed")
+plot(density(-rweibull(10000, 2, 10), bw=2), axes=FALSE, xlab="", ylab="", main=""); box(); title("Left skewed")
+plot(density(c(rnorm(10000, 0, 1), rnorm(10000, 7, 2)), bw=1), axes=FALSE, xlab="", ylab="", main=""); box(); title("Multimodal")
+```
+
+## transforming variables
+
+Apply log or square root to a variable will change the shape of the empirical distribution, e.g. transform right-skewed to symmetric. 
+
+```{r}
+oil %>% 
+  filter(Fe < 100) %>% 
+  ggplot(aes(x=log(Fe+1))) + geom_histogram(bins = 35)
+```
+
+## boxplots
+
+A special plot of these (or similar) five numbers:
+$$\min \qquad 25^{th}\text{ percentile}\qquad \text{ median} \qquad 75^{th}\text{ percentile} \qquad\max$$
+is called a *boxplot*. Often the extreme values are shown individually (see documentation for the (irrelevant) details.)
+
+Best as *side-by-side* boxplots with more than one varaible on the same scale.
+
+## boxplot example - I
+
+```{r, message=FALSE}
+oil_long %>% 
+  ggplot(aes(x=element, y=ppm)) + geom_boxplot()
+```
+
+## boxplot example - II 
+
+```{r, message=FALSE}
+oil_long %>% 
+  filter(!element %in% c("Ca", "Ph", "Zn")) %>%
+  ggplot(aes(x=element, y=ppm)) + geom_boxplot()
+```
+
+## scatterplot
+
+A graphic for two numerical variables, e.g. `Fe` and `Si`
+
+```{r}
+oil %>% 
+  ggplot(aes(x=Fe, y=Si)) + geom_point()
+```
+
+## `Fe` vs `Si` without the "outliers"
+
+```{r}
+oil %>% 
+  filter(Fe < 100) %>% 
+  ggplot(aes(x=Fe, y=Si)) + geom_point()
+```
+
+## alternatively, on a log-log scale
+
+```{r}
+oil %>% 
+  ggplot(aes(x=log(Fe+1), y=log(Si+1))) + geom_point()
+```
+
+## "small multiples" through faceting
+
+A powerful exploratory tool is to make a grid of small plots on subsets of the data.
+
+```{r}
+oil %>% 
+  ggplot(aes(x=log(Fe+1), y=log(Si+1))) +
+  facet_wrap(~Ident) + 
+  geom_point()
+```
+
+## what about that "Date" variable...(!)
+
+```{r}
+oil %>% 
+  ggplot(aes(x=Date, y=Zn)) + geom_point()
+```
+
+## `Fe` versus `Date`, facet by `Ident`
+
+```{r}
+oil %>% 
+  ggplot(aes(x=Date, y=Fe)) + facet_wrap(~Ident) + geom_point()
+```
